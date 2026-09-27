@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from app.database import get_db
-from app.models.models import Arrival, BunchReport, Line, Trip
+from app.models.models import Arrival, BunchReport, Line, SharedStop, Trip
 from app.services.bunch_engine import detect_bunching, events_to_dicts
 router = APIRouter(prefix="/reports", tags=["reports"])
 
@@ -22,9 +22,31 @@ def run_detection(line_id: int, stop_name: str | None = None, db: Session = Depe
     trip_ids = [t.id for t in trips]
     trip_no_map = {t.id: t.trip_no for t in trips}
     arrivals = db.scalars(select(Arrival).where(Arrival.trip_id.in_(trip_ids))).all()
-    payload = [{"stop_name": a.stop_name, "trip_no": trip_no_map[a.trip_id], "actual_arrive": a.actual_arrive}
+    payload = [{"stop_name": a.stop_name, "trip_no": trip_no_map[a.trip_id],
+                "actual_arrive": a.actual_arrive, "line_code": line.code}
                for a in arrivals if stop_name is None or a.stop_name == stop_name]
-    events = detect_bunching(payload, line.planned_headway_min, line.bunch_threshold, line.large_threshold)
+    # 共用站：其它线路登记了同一站名时，把其在 该站的到站并入同一时间序；非共用站只检本线
+    shared_names = [s.stop_name for s in line.shared_stops]
+    if shared_names:
+        partners: dict[str, set[int]] = {}
+        rows = db.scalars(select(SharedStop).where(SharedStop.stop_name.in_(shared_names),
+                                                   SharedStop.line_id != line_id)).all()
+        for r in rows:
+            partners.setdefault(r.stop_name, set()).add(r.line_id)
+        for name, line_ids in partners.items():
+            if stop_name is not None and name != stop_name: continue
+            code_map = {l.id: l.code for l in db.scalars(select(Line).where(Line.id.in_(line_ids))).all()}
+            other_trips = db.scalars(select(Trip).where(Trip.line_id.in_(line_ids))).all()
+            other_trip_map = {t.id: t for t in other_trips}
+            if not other_trip_map: continue
+            other_arrivals = db.scalars(select(Arrival).where(Arrival.trip_id.in_(list(other_trip_map)),
+                                                              Arrival.stop_name == name)).all()
+            for a in other_arrivals:
+                t = other_trip_map[a.trip_id]
+                payload.append({"stop_name": a.stop_name, "trip_no": t.trip_no,
+                                "actual_arrive": a.actual_arrive, "line_code": code_map[t.line_id]})
+    events = detect_bunching(payload, line.planned_headway_min, line.bunch_threshold,
+                             line.large_threshold, own_line_code=line.code)
     data = events_to_dicts(events)
     report = BunchReport(line_id=line_id, stop_name=stop_name or "*", created_at=datetime.utcnow(),
                          summary_json=json.dumps(data, ensure_ascii=False))

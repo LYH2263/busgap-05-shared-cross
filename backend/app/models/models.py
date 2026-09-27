@@ -1,5 +1,5 @@
 from datetime import datetime
-from sqlalchemy import DateTime, Float, ForeignKey, Integer, String, Text
+from sqlalchemy import DateTime, Float, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.database import Base
 
@@ -12,6 +12,7 @@ class Line(Base):
     bunch_threshold: Mapped[float] = mapped_column(Float, default=3.0)
     large_threshold: Mapped[float] = mapped_column(Float, default=15.0)
     trips: Mapped[list["Trip"]] = relationship(back_populates="line")
+    shared_stops: Mapped[list["SharedStop"]] = relationship(back_populates="line", cascade="all, delete-orphan")
 
 class Trip(Base):
     __tablename__ = "trips"
@@ -31,6 +32,14 @@ class Arrival(Base):
     stop_seq: Mapped[int] = mapped_column(Integer)
     actual_arrive: Mapped[datetime] = mapped_column(DateTime)
     trip: Mapped["Trip"] = relationship(back_populates="arrivals")
+
+class SharedStop(Base):
+    __tablename__ = "shared_stops"
+    __table_args__ = (UniqueConstraint("line_id", "stop_name", name="uq_shared_stop"),)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    line_id: Mapped[int] = mapped_column(ForeignKey("lines.id"))
+    stop_name: Mapped[str] = mapped_column(String(64))
+    line: Mapped["Line"] = relationship(back_populates="shared_stops")
 
 class BunchReport(Base):
     __tablename__ = "bunch_reports"

@@ -48,6 +48,7 @@ function label(s: string) {
           <div class="bg-gap-val">{{ e.gap_min }}′</div>
           <div>计划 {{ e.planned_headway_min }}′</div>
           <div>{{ e.earlier_trip }} → {{ e.later_trip }}</div>
+          <div v-if="e.cross_line" class="bg-cross-line">跨线 · 对方 {{ e.other_line }}</div>
           <span class="badge" :class="e.status === 'bunching' ? 'badge-bad' : e.status === 'large_gap' ? 'badge-warn' : 'badge-ok'">
             {{ label(e.status) }}
           </span>

@@ -163,6 +163,26 @@ th { color: var(--bg-dim); font-weight: 600; font-size: 0.78rem; }
 .badge-ok { background: rgba(61,214,140,0.18); color: var(--bg-ok); }
 .badge-warn { background: rgba(255,176,32,0.18); color: var(--bg-amber); }
 .badge-bad { background: rgba(255,77,109,0.18); color: var(--bg-red); }
+.badge-cross { background: rgba(46,196,255,0.16); color: var(--bg-cyan); margin-left: 0.35rem; }
+.bg-cross-line { color: var(--bg-cyan); font-weight: 700; }
+
+.chip {
+  display: inline-flex; align-items: center; gap: 0.2rem;
+  padding: 0.1rem 0.4rem; margin: 0 0.3rem 0.2rem 0;
+  background: rgba(46,196,255,0.12); border: 1px solid var(--bg-edge);
+  font-size: 0.78rem; color: var(--bg-text);
+}
+.chip-x {
+  background: none; border: none; color: var(--bg-dim);
+  cursor: pointer; font-size: 0.85rem; padding: 0 0.1rem; line-height: 1;
+}
+.chip-x:hover { color: var(--bg-red); }
+.chip-input {
+  width: 6.5rem; padding: 0.2rem 0.4rem; margin-left: 0.3rem;
+  background: var(--bg-slate); border: 1px solid var(--bg-edge);
+  color: var(--bg-text); font-size: 0.8rem;
+}
+.btn-mini { padding: 0.22rem 0.6rem; font-size: 0.78rem; margin-left: 0.3rem; }
 .btn {
   background: var(--bg-cyan); color: #041018; border: none;
   padding: 0.45rem 0.95rem; font-weight: 700; cursor: pointer; font-size: 0.85rem;

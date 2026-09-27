@@ -21,4 +21,17 @@ def seed_if_empty(db: Session) -> None:
             if stop == "火车站" and trip_no == "T03":
                 arrive = base + timedelta(minutes=30)
             db.add(Arrival(trip_id=trip.id, stop_name=stop, stop_seq=seq, actual_arrive=arrive))
+    # 第二条线同样停靠「市民中心」，便于在线路页登记共用站后演示跨线判定；
+    # 默认不登记任何共用站，所有站只检本线。
+    base2 = datetime(2026, 9, 17, 7, 3, 0)
+    line2 = Line(code="K7", name="穗城快线", planned_headway_min=10.0, bunch_threshold=3.0, large_threshold=15.0)
+    db.add(line2); db.flush()
+    specs2 = [("K01", "粤A2001", 0), ("K02", "粤A2002", 9), ("K03", "粤A2003", 19), ("K04", "粤A2004", 23)]
+    stops2 = ["北广场", "市民中心", "博物馆", "东湖"]
+    for trip_no, vehicle, offset in specs2:
+        trip = Trip(line_id=line2.id, trip_no=trip_no, planned_depart=base2 + timedelta(minutes=offset), vehicle_no=vehicle)
+        db.add(trip); db.flush()
+        for seq, stop in enumerate(stops2):
+            arrive = base2 + timedelta(minutes=offset + seq * 7)
+            db.add(Arrival(trip_id=trip.id, stop_name=stop, stop_seq=seq, actual_arrive=arrive))
     db.commit()
