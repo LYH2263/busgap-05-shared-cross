@@ -43,7 +43,10 @@ function label(s: string) {
         class="bg-gap-strip"
         :class="stripClass(e.status)"
       >
-        <header>{{ e.stop_name }}</header>
+        <header>
+          {{ e.stop_name }}
+          <span v-if="e.cross_line" class="badge badge-cross">跨线 · 对方 {{ e.other_line_code }}</span>
+        </header>
         <div class="bg-gap-body">
           <div class="bg-gap-val">{{ e.gap_min }}′</div>
           <div>计划 {{ e.planned_headway_min }}′</div>

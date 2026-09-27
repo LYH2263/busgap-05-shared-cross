@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
-from app.models.models import Arrival, Line, Trip
+from app.models.models import Arrival, Line, SharedStop, Trip
 
 def seed_if_empty(db: Session) -> None:
     if (db.scalar(select(func.count()).select_from(Line)) or 0) > 0:
@@ -21,4 +21,21 @@ def seed_if_empty(db: Session) -> None:
             if stop == "火车站" and trip_no == "T03":
                 arrive = base + timedelta(minutes=30)
             db.add(Arrival(trip_id=trip.id, stop_name=stop, stop_seq=seq, actual_arrive=arrive))
+
+    # 第二条线，在「市民中心」与 B12 共用，制造跨线串车（默认不登记其它站）
+    line2 = Line(code="B13", name="城西快线", planned_headway_min=9.0, bunch_threshold=3.0, large_threshold=16.0)
+    db.add(line2); db.flush()
+    stops2 = ["西站", "市民中心", "东湖"]
+    specs2 = [("K01", "粤A2001", 4), ("K02", "粤A2002", 20)]
+    for trip_no, vehicle, offset in specs2:
+        trip = Trip(line_id=line2.id, trip_no=trip_no, planned_depart=base + timedelta(minutes=offset), vehicle_no=vehicle)
+        db.add(trip); db.flush()
+        for seq, stop in enumerate(stops2):
+            db.add(Arrival(trip_id=trip.id, stop_name=stop, stop_seq=seq,
+                           actual_arrive=base + timedelta(minutes=offset + seq * 6)))
+
+    shared = SharedStop(stop_name="市民中心")
+    db.add(shared); db.flush()
+    line.shared_stops.append(shared)
+    line2.shared_stops.append(shared)
     db.commit()
